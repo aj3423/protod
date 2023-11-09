@@ -1,6 +1,6 @@
 ## Decode protobuf without message definition.
 ## Try it online
-An old Golang version of protod: http://168.138.55.177/
+An old Golang protod as the backend: http://168.138.55.177/. See [aproto](https://github.com/aj3423/aproto) if you need a Golang module.
 # Screenshot
 ![protod](https://github.com/aj3423/protod/assets/4710875/bb8986db-ed7e-4cbf-967b-9d28cc6d4237)
 ## Install
