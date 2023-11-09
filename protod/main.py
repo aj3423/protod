@@ -8,8 +8,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--file', type=str, help='file path that contains proto data')
 parser.add_argument('--hex', action='store_true', help='content is hex string, eg: "080102..."')
 parser.add_argument('--b64', action='store_true', help='content is base64')
-parser.add_argument('--max_bin', type=int, default=32, help='content is base64')
-parser.add_argument('rest', nargs=argparse.REMAINDER)
+parser.add_argument('--max_bin', metavar='n', type=int, default=32, help='binary exceeds `n` bytes is truncated and followed by a "..."')
+parser.add_argument('rest', help='hex string to parse, eg: "08 01..."', nargs=argparse.REMAINDER)
 
 args = parser.parse_args()
 
@@ -25,12 +25,17 @@ if args.file is not None: # get proto from file
         proto = f.read()
         f.close()
     except:
-        cprint(f'failed to read file: {args.file}')
+        cprint(f'failed to read file: {args.file}', 'red')
         sys.exit(1)
 
     if args.b64 or args.hex:
         proto = cleanup(proto)
 else: # get proto from arguments
+    if len(args.rest) == 0:
+        cprint(f'no input', 'red')
+        parser.print_help()
+        sys.exit(1)
+
     if len(args.rest) > 1: # multiple rest arguments, eg: pro 0a 08 01 ...
         # concat them together
         proto = cleanup(''.join(args.rest))
@@ -44,7 +49,7 @@ if args.b64:
         import base64
         proto = base64.b64decode(proto)
     except:
-        cprint(f'invalid b64 data')
+        cprint(f'invalid b64 data', 'red')
         sys.exit(1)
 
 if type(proto) == str and re.match(r'^([0-9A-Fa-f]+)$', proto):
