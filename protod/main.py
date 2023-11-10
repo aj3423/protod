@@ -21,7 +21,7 @@ def cleanup(s:str) -> str:
 
 if args.file is not None: # get proto from file
     try:
-        f = open(args.file, "r")
+        f = open(args.file, "rb")
         proto = f.read()
         f.close()
     except:
