@@ -4,7 +4,7 @@ github = "https://github.com/aj3423/protod/"
 
 setup(
     name             = "protod",
-    version          = "23.11.10",
+    version          = "23.11.11",
     description      = "Decode protobuf without message definition.",
     url              = github,
     author           = "aj3423",
