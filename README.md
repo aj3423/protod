@@ -1,4 +1,4 @@
-## Decode protobuf without message definition.
+## Decode protobuf without proto.
 ## Try it online
 http://168.138.55.177/
 # Screenshot
