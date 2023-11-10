@@ -99,41 +99,61 @@ class Struct(Chunk):
         super().__init__(idtype, view)
         self.children = []
 
+    # return (
+    #   decoded bytes: bytes
+    #   encoding name: str
+    #   decode success: bool
+    # )
+    def decode_str(self) -> (bytes, str, bool):
+        view_bytes = self.view.tobytes()
+        try:
+            detected = chardet.detect(view_bytes)
+            if detected['confidence'] < 0.9:
+                raise Exception()
+
+            encoding = detected['encoding']
+
+            decoded = view_bytes.decode(encoding)
+            
+            return decoded, encoding, True
+        except:
+            pass
+
+        return view_bytes, '', False
+
+    def render_str(self, s:str, encoding:str, r:Renderer):
+        if encoding not in ['ascii']:
+            r.add_normal(f"[{encoding}] ")
+
+        r.add_str(s)
+
     def render(self, indent_level, r):
         self.idtype.render(indent_level, r)
-
         r.add_normal(f"({str(len(self.view))}) ")
 
-        if self.children: # is struct
-            for ch in self.children:
-                r.add_newline()
-                ch.render(indent_level+1, r)
-        else: # is string
-            try: # try to detect the encoding and decode 
-                view_bytes = self.view.tobytes()
+        decoded, encoding, is_str = self.decode_str()
 
-                detected = chardet.detect(view_bytes)
-                if detected['confidence'] < 0.9:
-                    raise Exception('confidence too low')
+        if is_str:
+            if self.children:
+                if decoded.isprintable():
+                    self.render_str(decoded, encoding, r)
+            else:
+                self.render_str(decoded, encoding, r)
 
-                encoding = detected['encoding']
-
-                decoded = view_bytes.decode(encoding)
-                
-                if encoding not in ['ascii']:
-                    r.add_normal(f"[{encoding}] ")
-
-                r.add_str(decoded)
-
-                # Also show hex string if:
+                # Also show hex if:
                 # 1. it contains non-printable characters
                 # 2. it is short, less than 8 bytes
                 if not decoded.isprintable() or 0 < len(self.view) <= 8:
                     r.add_normal(' (')
                     r.add_bin(self.view)
                     r.add_normal(')')
-            except:
-                # Exception means failed to decode the charset
-                # just show as binary
+        else:
+            if not self.children:
+                # show as binary
                 r.add_bin(self.view)
-
+                
+        # 2. show as child struct
+        if self.children:
+            for ch in self.children:
+                r.add_newline()
+                ch.render(indent_level+1, r)
