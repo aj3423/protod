@@ -16,7 +16,9 @@ args = parser.parse_args()
 proto = bytes()
 
 # clear all ' \t\n\r' of an str
-def cleanup(s:str) -> str:
+def cleanup(s) -> str:
+    if type(s) == bytes:
+        return re.sub(r'[\n\r\t ]+', '', s.decode()) 
     return re.sub(r'[\n\r\t ]+', '', s)
 
 if args.file is not None: # get proto from file
