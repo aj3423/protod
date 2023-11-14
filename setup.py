@@ -4,13 +4,14 @@ github = "https://github.com/aj3423/protod/"
 
 setup(
     name             = "protod",
-    version          = "23.11.11",
+    version          = "23.11.14",
     description      = "Decode protobuf without message definition.",
     url              = github,
     author           = "aj3423",
     packages         = find_packages(),
     install_requires = [
         'chardet',
+        'charset_normalizer',
         'protobuf',
         'termcolor'
     ],

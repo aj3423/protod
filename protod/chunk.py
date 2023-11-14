@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from .renderer import Renderer
 
 import chardet
+import charset_normalizer
 import ctypes
 
 class WireType:
@@ -107,7 +108,13 @@ class Struct(Chunk):
     def decode_str(self) -> (bytes, str, bool):
         view_bytes = self.view.tobytes()
         try:
-            detected = chardet.detect(view_bytes)
+            # `chardet` is way more accurate, but very slow with large bytes(4 seconds on 50k bytes)
+            # `charset_normalizer` shows wrong result with small bytes, but very performant with long bytes
+            if len(view_bytes) <= 200:
+                detected = chardet.detect(view_bytes)
+            else:
+                detected = charset_normalizer.detect(view_bytes)
+
             if detected['confidence'] < 0.9:
                 raise Exception()
 
