@@ -8,10 +8,10 @@ http://168.138.55.177/
 ## The command line tool
 
 - `protod 080102...`
-- `protod 08 01 02...` (with space/tab/newline)
+- `protod '08 01 02...'` (with space/tab/newline)
 - `protod --b64 CAEIAQ==`
 - `protod --file ~/pb.bin`
-- type `protod` for detail
+- `protod` for help
   
 ## library protod
 It uses different `Renderer` to generate different output:
