@@ -1,9 +1,14 @@
+import itertools
+import struct
 from typing import List
 
 from google.protobuf.internal.decoder import _DecodeVarint
 
-from .renderer import Renderer, ConsoleRenderer
-from .chunk import Chunk, IdType, Fixed32, Fixed64, Varint, Struct, WireType
+from .definition import WireType
+from .field import Field, Fixed, IdType, RepeatedField, Struct, Varint
+from .renderer import ConsoleRenderer
+from .util import detect_multi_charset
+
 
 # 0	Varint	int32, int64, uint32, uint64, sint32, sint64, bool, enum
 # 1	64-bit	fixed64, sfixed64, double
@@ -11,7 +16,7 @@ from .chunk import Chunk, IdType, Fixed32, Fixed64, Varint, Struct, WireType
 # 3	Start group	groups (deprecated)
 # 4	End group	groups (deprecated)
 # 5	32-bit	fixed32, sfixed32, float
-def decode_1_chunk(view: memoryview) -> (Chunk, int):
+def decode_1_field(str_decoder, parent: Field, view: memoryview) -> tuple[Field, int]:
     pos = 0
 
     id_type, pos = _DecodeVarint(view, 0)
@@ -21,94 +26,120 @@ def decode_1_chunk(view: memoryview) -> (Chunk, int):
 
     id = id_type >> 3
 
-    if id > 536870911: # max field: 2^29 - 1 == 536870911
+    if id > 536870911:  # max field: 2^29 - 1 == 536870911
         raise Exception("field number > max field value 2^29-1")
 
     wire_type = id_type & 7
 
-    id_type_bytes = view[0:pos]
+    idtype_bytes = view[0:pos]
 
-    if wire_type == WireType.Varint: # 0
+    ret = None
+
+    if wire_type == WireType.Varint:  # 0
         if pos >= len(view):
             raise Exception("not enough data for wire type 0(varint)")
 
         u64, pos = _DecodeVarint(view, pos)
 
-        return Varint(IdType(id, wire_type, id_type_bytes), u64), pos
+        ret = Varint(u64)
 
-    elif wire_type == WireType.Fixed32: # 5
+    elif wire_type == WireType.Fixed32:  # 5
         if pos + 4 > len(view):
             raise Exception("not enough data for wire type 5(fixed32)")
-        
-        _4bytes = view[pos:pos+4]
+
+        _4bytes = view[pos : pos + 4]
         pos += 4
 
-        return Fixed32(IdType(id, wire_type, id_type_bytes), _4bytes), pos
-    elif wire_type == WireType.Fixed64: # 1
+        u = struct.unpack("<I", _4bytes)[0]  # unsigned
+        i = struct.unpack("<i", _4bytes)[0]  # signed
+        f = struct.unpack("<f", _4bytes)[0]  # float
+        ret = Fixed(u, i, f)
+
+    elif wire_type == WireType.Fixed64:  # 1
         if pos + 8 > len(view):
             raise Exception("not enough data for wire type 1(fixed64)")
 
-        _8bytes = view[pos:pos+8]
+        _8bytes = view[pos : pos + 8]
         pos += 8
 
-        return Fixed64(IdType(id, wire_type, id_type_bytes), _8bytes), pos
+        u = struct.unpack("<q", _8bytes)[0]  # unsigned
+        i = struct.unpack("<Q", _8bytes)[0]  # signed
+        f = struct.unpack("<d", _8bytes)[0]  # float
 
-    elif wire_type == WireType.Struct: # 2
+        ret = Fixed(u, i, f)
+
+    elif wire_type == WireType.Struct:  # 2
         s_len, pos = _DecodeVarint(view, pos)
 
         if pos + s_len > len(view):
             raise Exception("not enough data for wire type 2(string)")
 
-        view_chunk = view[pos:pos+s_len]
+        view_field = view[pos : pos + s_len]
         pos += s_len
 
-        _struct = Struct(IdType(id, wire_type, id_type_bytes), view_chunk)
+        as_str, encoding, is_str = str_decoder(view_field)
+        ret = Struct(view_field, as_str, encoding, is_str)
 
         try:
-            chunks = decode_all_chunks(view_chunk)
-            # if decode successfully, treat as struct
-            _struct.children = chunks
+            # if decode successfully, it's child struct, not just binary bytes
+            ret.as_fields = decode_all_fields(str_decoder, ret, view_field)
         except:
             pass
-        return _struct, pos
 
-    elif wire_type == WireType.Deprecated_3: # 3
+    elif wire_type == WireType.Deprecated_3:  # 3
         raise Exception("[proto 3] found, looks like invalid proto bytes")
 
-    elif wire_type == WireType.Deprecated_4: # 4
+    elif wire_type == WireType.Deprecated_4:  # 4
         raise Exception("[proto 4] found, looks like invalid proto bytes")
-
     else:
         raise Exception(f"Unknown wire type {wire_type} of id_type {id_type}")
 
-def decode_all_chunks(view: memoryview) -> List[Chunk]:
+    ret.idtype = IdType(id, wire_type, idtype_bytes)
+    ret.parent = parent
+
+    return ret, pos
+
+
+def decode_all_fields(str_decoder, parent: Field, view: memoryview) -> List[Field]:
     pos = 0
-    ret = []
+    fields = []
 
     while pos < len(view):
         try:
-            chunk, chunk_len = decode_1_chunk(view[pos:])
+            field, field_len = decode_1_field(str_decoder, parent, view[pos:])
         except:
-            raise Exception(f"chunk: {view[pos:].tobytes()}")
+            raise Exception(f"field: {view[pos:].tobytes()}")
 
-        ret.append(chunk)
-        pos += chunk_len
+        fields.append(field)
+        pos += field_len
+
+    # group fields with same id to a RepeatedField
+    ret = []
+    for _, group in itertools.groupby(fields, lambda f: f.idtype.id):
+
+        items = list(group)
+
+        if len(items) == 1:  # single field
+            ret.append(items[0])
+        else:  # repeated fields
+            repeated = RepeatedField(items)
+            repeated.idtype = items[0].idtype
+            repeated.parent = items[0].parent
+            ret.append(repeated)
 
     return ret
 
-def dump(data: bytes, r = None):
-    if r is None:
-        r = ConsoleRenderer()
 
+def dump(
+    data: bytes,
+    renderer=ConsoleRenderer(),
+    str_decoder=detect_multi_charset,
+):
     view = memoryview(data)
 
-    chunks = decode_all_chunks(view)
+    fields = decode_all_fields(str_decoder=str_decoder, parent=None, view=view)
 
-    for ch in chunks:
-        ch.render(0, r)
-        r.add_newline()
+    for ch in fields:
+        ch.render(renderer)
 
-    return r.build_result()
-
-
-
+    return renderer.build_result()
