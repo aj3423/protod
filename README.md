@@ -13,20 +13,25 @@ http://168.138.55.177/
 - `protod --file ~/pb.bin`
 - `protod` for help
   
-## library protod
-It uses different `Renderer` to generate different output:
+## Library protod
+
 - For console:
 ```python
-print(protod.dump(proto)) # ConsoleRenderer is used by default
+print(protod.dump(proto)) # ConsoleRenderer by default
 ```
-- For html:
+- Costumize `Renderer` to generate different output:
 ```python
-html_tag = protod.dump(proto, protod.HtmlRenderer())
-# send the html_tag to client browser
- $('#div').text(html_tag)
+print(protod.dump(
+    proto,
+
+    renderer = JsonRenderer(), # see example/json_renderer.py
+
+    # The default string decoder will try to detect all encodings,
+    # provide a custom decoder to increase the accuracy if you know the encoding.
+    str_decoder = decode_utf8, # see example/json_renderer.py
+))
 ```
-- For other format:   
-This [example](https://github.com/aj3423/protod/blob/master/example/mitmproxy_proto_view.py) demonstrates how to implemente custom `Renderer`, it's an addon for [mitmproxy](https://github.com/mitmproxy/mitmproxy/)
+- [A sample addon](https://github.com/aj3423/protod/blob/master/example/mitmproxy_proto_view.py) for [mitmproxy](https://github.com/mitmproxy/mitmproxy/)
 
    ![image](https://github.com/aj3423/protod/assets/4710875/aca8a5b1-4c05-4cc4-8346-f3b91a6ca8d7)
 
