@@ -43,13 +43,12 @@ class JsonRenderer(Renderer):
 
         curr = None
 
-        if struct.is_str:
-            curr = struct.as_str
-
-        elif struct.as_fields:
+        if struct.as_fields:
             curr = {}
             for ch in struct.as_fields:
                 curr[ch.idtype.id] = self._build_tmp_item(ch)
+        elif struct.is_str:
+            curr = struct.as_str
 
         else:
             curr = " ".join(format(x, "02x") for x in struct.view)
@@ -67,7 +66,6 @@ def decode_utf8(view) -> tuple[bytes, str, bool]:
     try:
         utf8 = "UTF-8"
         decoded = view_bytes.decode(utf8)
-        print("u8", view_bytes)
         return decoded, utf8, True
     except:
         return view_bytes, "", False
@@ -80,6 +78,6 @@ proto_bytes = binascii.unhexlify(sample)
 ret = protod.dump(
     proto_bytes,
     renderer=JsonRenderer(),
-    # str_decoder=decode_utf8,
+    str_decoder=decode_utf8,
 )
 print(json.dumps(ret, indent=4, ensure_ascii=False))
