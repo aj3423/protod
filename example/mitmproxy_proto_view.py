@@ -70,10 +70,10 @@ class ViewProto(contentviews.View):
 
     def __call__(self, data, **metadata) -> contentviews.TViewResult:
         # ctx.log.error("111111")
-        try:
-            protod.dump(data, renderer=MitmproxyRenderer())
-        except Exception as e:
-            ctx.log.error(e)
+        # try:
+        #     protod.dump(data, renderer=MitmproxyRenderer())
+        # except Exception as e:
+        #     ctx.log.error(e)
         return "protobuf decoded", protod.dump(data, renderer=MitmproxyRenderer())
 
     def render_priority(
