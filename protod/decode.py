@@ -132,9 +132,12 @@ def decode_all_fields(str_decoder, parent: Field, view: memoryview) -> List[Fiel
 
 def dump(
     data: bytes,
-    renderer=ConsoleRenderer(),
+    renderer=None,
     str_decoder=detect_multi_charset,
 ):
+    if renderer == None:
+        renderer = ConsoleRenderer()
+
     view = memoryview(data)
 
     fields = decode_all_fields(str_decoder=str_decoder, parent=None, view=view)
