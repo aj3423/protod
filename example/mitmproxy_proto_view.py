@@ -8,7 +8,6 @@ from protod import ConsoleRenderer
 # Color palettes are defined in:
 #  https://github.com/mitmproxy/mitmproxy/blob/746537e0511e0316a144e05e7ba8cc6f6e44768b/mitmproxy/tools/console/palettes.py#L154
 class MitmproxyRenderer(ConsoleRenderer):
-
     # Long binary data that exceeds `n` bytes are truncated and followed by a '...'
     # use a large value like 1000000 to 'not' truncate
     # default: 32
@@ -65,29 +64,36 @@ class MitmproxyRenderer(ConsoleRenderer):
             self._add_normal(" ...")
 
 
-class ViewProto(contentviews.View):
+class ViewProto(contentviews.Contentview):
     name = "ViewProto"
 
-    def __call__(self, data, **metadata) -> contentviews.TViewResult:
+    def prettify(self, data: bytes, metadata: contentviews.Metadata) -> str:
         # ctx.log.error("111111")
         # try:
-        #     protod.dump(data, renderer=MitmproxyRenderer())
+        #     ctx.log.warn("start")
+        #     x = protod.dump(
+        #         data, renderer=ConsoleRenderer(no_color=True)
+        #     )
+        #     ctx.log.warn(x)
+        #     ctx.log.warn("end")
         # except Exception as e:
         #     ctx.log.error(e)
-        return "protobuf decoded", protod.dump(data, renderer=MitmproxyRenderer())
+        # return "aaaaaaaaaaaaaaaaa"
+        return protod.dump(data, renderer=ConsoleRenderer(no_color=True))
 
-    def render_priority(
-        self, data: bytes, *, content_type: str | None = None, **metadata
-    ) -> float:
-        return 1000 if "proto" in content_type else 0
-
-
-view = ViewProto()
+    def render_priority(self, data: bytes, metadata: contentviews.Metadata) -> float:
+        # ctx.log.warn(metadata.flow.server_conn)
+        return 1000 if "nexus" in str(metadata.flow.server_conn.address) else 0
 
 
-def load(loader: Loader):
-    contentviews.add(view)
+# view = ViewProto()
 
 
-def done():
-    contentviews.remove(view)
+# def load(loader: Loader):
+#     contentviews.add(view)
+
+
+# def done():
+#     contentviews.remove(view)
+
+contentviews.add(ViewProto)

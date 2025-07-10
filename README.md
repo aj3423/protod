@@ -1,11 +1,11 @@
-## Decode protobuf without .proto.
+## Decode protobuf without proto.
 ## Try it online
 http://168.138.55.177/
 # Screenshot
 ![protod](https://github.com/aj3423/protod/assets/4710875/bb8986db-ed7e-4cbf-967b-9d28cc6d4237)
 ## Install
 `pip install protod`
-## Command line usage
+## The command line tool
 
 - `protod 080102...`
 - `protod '08 01 02...'` (with space/tab/newline)
@@ -13,14 +13,14 @@ http://168.138.55.177/
 - `protod --file ~/pb.bin`
 - `protod` for help
   
-## Python library protod
-Different `Renderer`s for different output:
-- Print to terminal:
+## library protod
+It uses different `Renderer` to generate different output:
+- For console:
 ```python
 print(protod.dump(proto_bytes)) # ConsoleRenderer is used by default
 ```
 
-There are [examples](https://github.com/aj3423/protod/blob/master/example) for how to write custom `Renderer`s:
+There are [examples](https://github.com/aj3423/protod/blob/master/example) demonstrate how to write custom `Renderer`s:
 - json
 
  ![image](https://github.com/aj3423/protod/assets/4710875/2c3bddb2-06e7-44b4-844f-eaaff6a26d6f)

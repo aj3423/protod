@@ -37,13 +37,13 @@ class Renderer(ABC):
 
 
 class ConsoleRenderer(Renderer):
-
     # Long binary data that exceeds `n` bytes is truncated and followed by a '...'
     # use a large value like 1000000 to 'not' truncate
     # default: 32
-    def __init__(self, truncate_after=32):
+    def __init__(self, truncate_after=32, no_color=False):
         self.cells = []
         self.truncate_after = truncate_after
+        self.no_color = no_color
 
     def build_result(self):
         return "".join(self.cells)
@@ -138,24 +138,28 @@ class ConsoleRenderer(Renderer):
         self._add(s)
 
     def _add_idtype(self, s):
-        self._add(colored(s, "light_red"))
+        self._add(colored(s, "light_red", no_color=self.no_color))
 
     def _add_id(self, s):
-        self._add(colored(s, "light_green"))
+        self._add(colored(s, "light_green", no_color=self.no_color))
 
     def _add_type(self, s):
-        self._add(colored(s, "yellow"))
+        self._add(colored(s, "yellow", no_color=self.no_color))
 
     def _add_num(self, s):
-        self._add(colored(s, "light_cyan"))
+        self._add(colored(s, "light_cyan", no_color=self.no_color))
 
     def _add_str(self, s):
-        self._add(colored(s, "light_blue"))
+        self._add(colored(s, "light_blue", no_color=self.no_color))
 
     def _add_bin(self, s):
         truncated = s[: self.truncate_after]
         self._add(
-            colored(" ".join(format(x, "02x") for x in truncated), "light_yellow")
+            colored(
+                " ".join(format(x, "02x") for x in truncated),
+                "light_yellow",
+                no_color=self.no_color,
+            )
         )
         if len(s) > self.truncate_after:
             self._add_normal(" ...")
